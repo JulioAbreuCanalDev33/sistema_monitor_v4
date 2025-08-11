@@ -16,6 +16,17 @@
             </div>
             
             <?php
+            // Define get_flash_message if not already defined
+            if (!function_exists('get_flash_message')) {
+                function get_flash_message() {
+                    if (isset($_SESSION['flash_message'])) {
+                        $flash = $_SESSION['flash_message'];
+                        unset($_SESSION['flash_message']);
+                        return $flash;
+                    }
+                    return null;
+                }
+            }
             $flash = get_flash_message();
             if ($flash):
             ?>

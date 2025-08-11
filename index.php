@@ -10,15 +10,23 @@ session_start();
 
 // Autoload das classes
 require_once __DIR__ . '/vendor/autoload.php';
-require_once __DIR__ . '/../vendor/autoload.php';
+
 
 // Configurações gerais
 define('BASE_URL', 'http://localhost/sistema_monitoramento/');
 define('UPLOAD_PATH', __DIR__ . '/assets/uploads/');
 
 // Incluir funções (que já inclui o logger)
+require_once __DIR__ . '/Includes/log_page_access.php';
+
 use function App\Includes\log_page_access;
 use function App\Includes\checkPagePermission;
+
+// Log de acesso à página
+log_page_access($_GET['page'] ?? 'home');
+
+
+
 
 // Log de acesso à página
 if (isset($_GET['page'])) {
