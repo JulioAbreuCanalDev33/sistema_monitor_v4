@@ -6,20 +6,21 @@ Use PDO;
 
 
 class Database {
-    private $host = 'localhost';
-    private $db_name = 'informacoes_ocorrencias_veicular_3';
-    private $username = 'root';
-    private $password = '1234';
+    private $dbFile = __DIR__ . '/sistema.db'; 
     public $conn;
 
     public function getConnection() {
         $this->conn = null;
         
         try {
-            $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, 
-                                $this->username, $this->password);
-            $this->conn->exec("set names utf8");
+            // Conectar ao arquivo SQLite (se não existir, será criado)
+            $this->conn = new PDO("sqlite:" . $this->dbFile);
+            
+            // Ativar erros como exceções
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            
+            // Usar UTF-8
+            $this->conn->exec("PRAGMA encoding = 'UTF-8';");
         } catch(PDOException $exception) {
             echo "Erro de conexão: " . $exception->getMessage();
         }
@@ -27,5 +28,6 @@ class Database {
         return $this->conn;
     }
 }
+
 ?>
 

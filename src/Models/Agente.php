@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Models;
-
+//require_once ("App\Config\Database_sqlite.php");
 use App\Config\Database;
 use PDO;
 
@@ -27,6 +27,7 @@ class Agente {
 
     public function __construct() {
         $database = new Database();
+        //$database = new PDO("sqlite:" . $dbFile);
         $this->conn = $database->getConnection();
     }
 
