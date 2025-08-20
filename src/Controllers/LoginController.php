@@ -9,6 +9,7 @@ use function App\Includes\flash_message;
 use function App\Includes\redirect;
 use function App\Includes\sanitize_input;
 
+
 class LoginController {
     
     public function index() {
@@ -23,7 +24,7 @@ class LoginController {
     public function authenticate() {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $email = sanitize_input($_POST['email']);
-            $senha = $_POST['senha'];
+            $senha = sanitize_input($_POST['senha']);
             
             if (empty($email) || empty($senha)) {
                 flash_message('Email e senha são obrigatórios', 'error');

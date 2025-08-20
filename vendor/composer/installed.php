@@ -3,7 +3,7 @@
         'name' => 'manus/sistema-monitor',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '1c060230f90ab5a7ffbc8aeedc244b6fd2a213ba',
+        'reference' => 'c97404edf7c3e5d0b498b86b29fa3b3bc77c5c97',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -31,7 +31,7 @@
         'manus/sistema-monitor' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '1c060230f90ab5a7ffbc8aeedc244b6fd2a213ba',
+            'reference' => 'c97404edf7c3e5d0b498b86b29fa3b3bc77c5c97',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
