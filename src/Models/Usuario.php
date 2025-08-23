@@ -5,7 +5,8 @@ namespace App\Models;
 use PDO;
 use App\Config\Database;
 
-class Usuario {
+class Usuario
+{
     private $conn;
     private $table_name = "usuarios";
 
@@ -18,39 +19,43 @@ class Usuario {
     public $ativo;
     public $ultimo_login;
 
-    public function __construct() {
+    public function __construct()
+    {
         $database = new Database();
         $this->conn = $database->getConnection();
     }
 
-    public function login($email, $senha) {
-        $query = "SELECT id, nome, email, senha, nivel, ativo FROM " . $this->table_name . " 
+    public function login($email, $senha)
+    {
+        $query = "SELECT id, nome, email, senha, nivel, ativo 
+                  FROM " . $this->table_name . " 
                   WHERE email = :email AND ativo = 1";
-        
+
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':email', $email);
         $stmt->execute();
 
         if ($stmt->rowCount() > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if (password_verify($senha, $row['senha'])) {
                 $this->id = $row['id'];
                 $this->nome = $row['nome'];
                 $this->email = $row['email'];
                 $this->nivel = $row['nivel'];
-                
-                // Atualizar último login
+
+                // Atualiza último login
                 $this->updateLastLogin();
-                
+
                 return true;
             }
         }
-        
+
         return false;
     }
 
-    public function create() {
+    public function create()
+    {
         $query = "INSERT INTO " . $this->table_name . " 
                   (nome, email, senha, nivel, ativo) 
                   VALUES (:nome, :email, :senha, :nivel, :ativo)";
@@ -68,14 +73,11 @@ class Usuario {
         $stmt->bindParam(':nivel', $this->nivel);
         $stmt->bindParam(':ativo', $this->ativo);
 
-        if ($stmt->execute()) {
-            return true;
-        }
-
-        return false;
+        return $stmt->execute();
     }
 
-    public function read() {
+    public function read()
+    {
         $query = "SELECT id, nome, email, nivel, ativo, ultimo_login, created_at 
                   FROM " . $this->table_name . " 
                   ORDER BY nome ASC";
@@ -86,7 +88,8 @@ class Usuario {
         return $stmt;
     }
 
-    public function readOne() {
+    public function readOne()
+    {
         $query = "SELECT id, nome, email, nivel, ativo, ultimo_login, created_at 
                   FROM " . $this->table_name . " 
                   WHERE id = :id";
@@ -109,14 +112,15 @@ class Usuario {
         return false;
     }
 
-    public function update() {
+    public function update()
+    {
         $query = "UPDATE " . $this->table_name . " 
                   SET nome = :nome, email = :email, nivel = :nivel, ativo = :ativo";
-        
+
         if (!empty($this->senha)) {
             $query .= ", senha = :senha";
         }
-        
+
         $query .= " WHERE id = :id";
 
         $stmt = $this->conn->prepare($query);
@@ -136,45 +140,48 @@ class Usuario {
             $stmt->bindParam(':senha', $this->senha);
         }
 
-        if ($stmt->execute()) {
-            return true;
+        return $stmt->execute();
+    }
+
+    public function updateProfile()
+    {
+        $query = "UPDATE " . $this->table_name . " 
+                  SET nome = :nome, email = :email";
+
+        if (!empty($this->senha)) {
+            $query .= ", senha = :senha";
         }
 
-        return false;
-    }
-
-    public function updateProfile() {
-    $sql = "UPDATE usuarios SET nome = :nome, email = :email";
-    if (!empty($this->senha)) {
-        $sql .= ", senha = :senha";
-    }
-    $sql .= " WHERE id = :id";
-    $stmt = $this->conn->prepare($sql);
-    $stmt->bindParam(':nome', $this->nome);
-    $stmt->bindParam(':email', $this->email);
-    if (!empty($this->senha)) {
-        $stmt->bindParam(':senha', $this->senha);
-    }
-    $stmt->bindParam(':id', $this->id, PDO::PARAM_INT);
-    return $stmt->execute();
-}
-
-    public function delete() {
-        $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
+        $query .= " WHERE id = :id";
 
         $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':nome', $this->nome);
+        $stmt->bindParam(':email', $this->email);
         $stmt->bindParam(':id', $this->id);
 
-        if ($stmt->execute()) {
-            return true;
+        if (!empty($this->senha)) {
+            $this->senha = password_hash($this->senha, PASSWORD_DEFAULT);
+            $stmt->bindParam(':senha', $this->senha);
         }
 
-        return false;
+        return $stmt->execute();
     }
 
-    private function updateLastLogin() {
+    public function delete()
+    {
+        $query = "DELETE FROM " . $this->table_name . " WHERE id = :id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $this->id);
+        return $stmt->execute();
+    }
+
+    /**
+     * Atualiza o último login com data/hora válida para SQLite
+     */
+    private function updateLastLogin()
+    {
         $query = "UPDATE " . $this->table_name . " 
-                  SET ultimo_login = NOW() 
+                  SET ultimo_login = datetime('now') 
                   WHERE id = :id";
 
         $stmt = $this->conn->prepare($query);
@@ -182,17 +189,17 @@ class Usuario {
         $stmt->execute();
     }
 
-    public function emailExists() {
-        $query = "SELECT id FROM " . $this->table_name . " 
-                  WHERE email = :email";
-        
+    public function emailExists()
+    {
+        $query = "SELECT id FROM " . $this->table_name . " WHERE email = :email";
+
         if (isset($this->id)) {
             $query .= " AND id != :id";
         }
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':email', $this->email);
-        
+
         if (isset($this->id)) {
             $stmt->bindParam(':id', $this->id);
         }
@@ -202,5 +209,3 @@ class Usuario {
         return $stmt->rowCount() > 0;
     }
 }
-?>
-

@@ -11,9 +11,20 @@ use function App\Includes\redirect;
 use function App\Includes\sanitize_input;
 use function App\Includes\upload_file;
 
-class VigilanciaController {
-    
-    public function index() {
+class VigilanciaController 
+{
+    /**
+     * Carregar vigilância atual para manter fotos
+     */
+    private function getCurrentVigilancia($id) 
+    {
+        $vigilancia = new VigilanciaVeicular();
+        $vigilancia->id = $id;
+        return $vigilancia->readOne() ? $vigilancia : null;
+    }
+
+    public function index() 
+    {
         try {
             $vigilancia = new VigilanciaVeicular();
             $stmt = $vigilancia->read();
@@ -22,191 +33,233 @@ class VigilanciaController {
             include 'views/vigilancia/index.php';
         } catch (Exception $e) {
             log_error('VIGILANCIA_INDEX_ERROR', $e->getMessage());
-            echo "Erro ao carregar vigilâncias: " . $e->getMessage();
+            flash_message('error', 'Erro ao carregar vigilâncias: ' . $e->getMessage());
+            include 'views/vigilancia/index.php';
         }
     }
     
-    public function create() {
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $vigilancia = new VigilanciaVeicular();
-            
-            // Preencher propriedades
-            $vigilancia->veiculo = sanitize_input($_POST['veiculo']);
-            $vigilancia->condutor = sanitize_input($_POST['condutor']);
-            $vigilancia->data_hora_inicio = $_POST['data_hora_inicio'];
-            $vigilancia->data_hora_fim = $_POST['data_hora_fim'];
-            $vigilancia->localizacao_inicial = sanitize_input($_POST['localizacao_inicial']);
-            $vigilancia->localizacao_final = sanitize_input($_POST['localizacao_final']);
-            $vigilancia->km_inicial = $_POST['km_inicial'];
-            $vigilancia->km_final = $_POST['km_final'];
-            $vigilancia->combustivel_inicial = $_POST['combustivel_inicial'];
-            $vigilancia->combustivel_final = $_POST['combustivel_final'];
-            $vigilancia->observacoes = sanitize_input($_POST['observacoes']);
-            $vigilancia->status_vigilancia = sanitize_input($_POST['status_vigilancia']);
-            $vigilancia->responsavel = sanitize_input($_POST['responsavel']);
-            
-            // Upload de fotos
-            if (isset($_FILES['fotos_vigilancia']) && $_FILES['fotos_vigilancia']['error'][0] == 0) {
-                $fotos_nomes = [];
-                
-                for ($i = 0; $i < count($_FILES['fotos_vigilancia']['name']); $i++) {
-                    if ($_FILES['fotos_vigilancia']['error'][$i] == 0) {
-                        $arquivo_temp = [
-                            'name' => $_FILES['fotos_vigilancia']['name'][$i],
-                            'type' => $_FILES['fotos_vigilancia']['type'][$i],
-                            'tmp_name' => $_FILES['fotos_vigilancia']['tmp_name'][$i],
-                            'error' => $_FILES['fotos_vigilancia']['error'][$i],
-                            'size' => $_FILES['fotos_vigilancia']['size'][$i]
-                        ];
-                        
-                        $upload_result = upload_file($arquivo_temp, ['jpg', 'jpeg', 'png']);
-                        if ($upload_result['success']) {
-                            $fotos_nomes[] = $upload_result['filename'];
-                        }
+    public function create() 
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            include 'views/vigilancia/create.php';
+            return;
+        }
+
+        $vigilancia = new VigilanciaVeicular();
+
+        // Preencher propriedades
+        $this->fillVigilancia($vigilancia);
+
+        // Upload de fotos
+        $uploaded_photos = [];
+        if (isset($_FILES['fotos_vigilancia']) && is_array($_FILES['fotos_vigilancia']['error'])) {
+            for ($i = 0; $i < count($_FILES['fotos_vigilancia']['name']); $i++) {
+                if ($_FILES['fotos_vigilancia']['error'][$i] === UPLOAD_ERR_OK) {
+                    $file = [
+                        'name' => $_FILES['fotos_vigilancia']['name'][$i],
+                        'type' => $_FILES['fotos_vigilancia']['type'][$i],
+                        'tmp_name' => $_FILES['fotos_vigilancia']['tmp_name'][$i],
+                        'error' => $_FILES['fotos_vigilancia']['error'][$i],
+                        'size' => $_FILES['fotos_vigilancia']['size'][$i]
+                    ];
+
+                    $result = upload_file($file, ['jpg', 'jpeg', 'png']);
+                    if ($result['success']) {
+                        $uploaded_photos[] = $result['filename'];
+                    } else {
+                        flash_message('warning', 'Erro no upload da foto: ' . $result['message']);
                     }
                 }
-                
-                $vigilancia->fotos_vigilancia = implode(',', $fotos_nomes);
-            }
-            
-            if ($vigilancia->create()) {
-                flash_message('Vigilância veicular criada com sucesso!', 'success');
-                redirect('index.php?page=vigilancia');
-            } else {
-                flash_message('Erro ao criar vigilância veicular', 'error');
             }
         }
-        
+
+        // Salvar nomes das fotos
+        if (!empty($uploaded_photos)) {
+            $vigilancia->fotos_vigilancia = implode(',', $uploaded_photos);
+        }
+
+        try {
+            if ($vigilancia->create()) {
+                flash_message('success', 'Vigilância veicular criada com sucesso!');
+                redirect('index.php?page=vigilancia');
+                exit;
+            } else {
+                flash_message('error', 'Erro ao criar vigilância veicular.');
+            }
+        } catch (Exception $e) {
+            log_error('VIGILANCIA_CREATE_ERROR', $e->getMessage());
+            flash_message('error', 'Erro ao salvar vigilância: ' . $e->getMessage());
+        }
+
         include 'views/vigilancia/create.php';
     }
     
-    public function edit() {
-        $id = $_GET['id'] ?? 0;
+    public function edit() 
+    {
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id === 0) {
+            flash_message('error', 'ID inválido.');
+            redirect('index.php?page=vigilancia');
+            exit;
+        }
+
         $vigilancia = new VigilanciaVeicular();
         $vigilancia->id = $id;
-        
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Preencher propriedades
-            $vigilancia->veiculo = sanitize_input($_POST['veiculo']);
-            $vigilancia->condutor = sanitize_input($_POST['condutor']);
-            $vigilancia->data_hora_inicio = $_POST['data_hora_inicio'];
-            $vigilancia->data_hora_fim = $_POST['data_hora_fim'];
-            $vigilancia->localizacao_inicial = sanitize_input($_POST['localizacao_inicial']);
-            $vigilancia->localizacao_final = sanitize_input($_POST['localizacao_final']);
-            $vigilancia->km_inicial = $_POST['km_inicial'];
-            $vigilancia->km_final = $_POST['km_final'];
-            $vigilancia->combustivel_inicial = $_POST['combustivel_inicial'];
-            $vigilancia->combustivel_final = $_POST['combustivel_final'];
-            $vigilancia->observacoes = sanitize_input($_POST['observacoes']);
-            $vigilancia->status_vigilancia = sanitize_input($_POST['status_vigilancia']);
-            $vigilancia->responsavel = sanitize_input($_POST['responsavel']);
-            
-            // Manter fotos existentes se não houver novos uploads
-            $vigilancia_atual = new VigilanciaVeicular();
-            $vigilancia_atual->id = $id;
-            $vigilancia_atual->readOne();
-            
-            $vigilancia->fotos_vigilancia = $vigilancia_atual->fotos_vigilancia;
-            
-            // Upload de novas fotos (se houver)
-            if (isset($_FILES['fotos_vigilancia']) && $_FILES['fotos_vigilancia']['error'][0] == 0) {
-                $fotos_nomes = [];
-                
+            $this->fillVigilancia($vigilancia);
+
+            // Manter fotos existentes
+            $current = $this->getCurrentVigilancia($id);
+            $vigilancia->fotos_vigilancia = $current ? $current->fotos_vigilancia : '';
+
+            // Upload de novas fotos
+            $uploaded_photos = [];
+            if (isset($_FILES['fotos_vigilancia']) && is_array($_FILES['fotos_vigilancia']['error'])) {
                 for ($i = 0; $i < count($_FILES['fotos_vigilancia']['name']); $i++) {
-                    if ($_FILES['fotos_vigilancia']['error'][$i] == 0) {
-                        $arquivo_temp = [
+                    if ($_FILES['fotos_vigilancia']['error'][$i] === UPLOAD_ERR_OK) {
+                        $file = [
                             'name' => $_FILES['fotos_vigilancia']['name'][$i],
                             'type' => $_FILES['fotos_vigilancia']['type'][$i],
                             'tmp_name' => $_FILES['fotos_vigilancia']['tmp_name'][$i],
                             'error' => $_FILES['fotos_vigilancia']['error'][$i],
                             'size' => $_FILES['fotos_vigilancia']['size'][$i]
                         ];
-                        
-                        $upload_result = upload_file($arquivo_temp, ['jpg', 'jpeg', 'png']);
-                        if ($upload_result['success']) {
-                            $fotos_nomes[] = $upload_result['filename'];
+
+                        $result = upload_file($file, ['jpg', 'jpeg', 'png']);
+                        if ($result['success']) {
+                            $uploaded_photos[] = $result['filename'];
+                        } else {
+                            flash_message('warning', 'Erro no upload da foto: ' . $result['message']);
                         }
                     }
-                }
-                
-                if (!empty($fotos_nomes)) {
-                    // Remover fotos antigas se existirem
-                    if ($vigilancia_atual->fotos_vigilancia) {
-                        $fotos_antigas = explode(',', $vigilancia_atual->fotos_vigilancia);
-                        foreach ($fotos_antigas as $foto_antiga) {
-                            if (file_exists(UPLOAD_PATH . $foto_antiga)) {
-                                unlink(UPLOAD_PATH . $foto_antiga);
-                            }
-                        }
-                    }
-                    
-                    $vigilancia->fotos_vigilancia = implode(',', $fotos_nomes);
                 }
             }
-            
-            if ($vigilancia->update()) {
-                flash_message('Vigilância veicular atualizada com sucesso!', 'success');
-                redirect('index.php?page=vigilancia');
-            } else {
-                flash_message('Erro ao atualizar vigilância veicular', 'error');
+
+            if (!empty($uploaded_photos)) {
+                // Remover fotos antigas
+                if ($current && $current->fotos_vigilancia) {
+                    $old_photos = explode(',', $current->fotos_vigilancia);
+                    foreach ($old_photos as $photo) {
+                        $path = UPLOAD_PATH . $photo;
+                        if (file_exists($path)) {
+                            unlink($path);
+                        }
+                    }
+                }
+                $vigilancia->fotos_vigilancia = implode(',', $uploaded_photos);
+            }
+
+            try {
+                if ($vigilancia->update()) {
+                    flash_message('success', 'Vigilância veicular atualizada com sucesso!');
+                    redirect('index.php?page=vigilancia');
+                    exit;
+                } else {
+                    flash_message('error', 'Erro ao atualizar vigilância veicular.');
+                }
+            } catch (Exception $e) {
+                log_error('VIGILANCIA_UPDATE_ERROR', $e->getMessage());
+                flash_message('error', 'Erro ao atualizar vigilância: ' . $e->getMessage());
             }
         }
-        
+
         if (!$vigilancia->readOne()) {
-            flash_message('Vigilância veicular não encontrada', 'error');
+            flash_message('error', 'Vigilância veicular não encontrada.');
             redirect('index.php?page=vigilancia');
+            exit;
         }
-        
+
         include 'views/vigilancia/edit.php';
     }
     
-    public function delete() {
-        // Verificar se é admin
+    public function delete() 
+    {
         if ($_SESSION['user_level'] !== 'admin') {
-            flash_message('Acesso negado. Apenas administradores podem excluir registros.', 'error');
+            flash_message('error', 'Acesso negado. Apenas administradores podem excluir registros.');
             redirect('index.php?page=vigilancia');
+            exit;
         }
         
-        $id = $_GET['id'] ?? 0;
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id === 0) {
+            flash_message('error', 'ID inválido.');
+            redirect('index.php?page=vigilancia');
+            exit;
+        }
+
         $vigilancia = new VigilanciaVeicular();
         $vigilancia->id = $id;
-        
-        // Buscar dados para remover arquivos
+
         if ($vigilancia->readOne()) {
-            // Remover fotos se existirem
+            // Remover fotos
             if ($vigilancia->fotos_vigilancia) {
-                $fotos = explode(',', $vigilancia->fotos_vigilancia);
-                foreach ($fotos as $foto) {
-                    if (file_exists(UPLOAD_PATH . $foto)) {
-                        unlink(UPLOAD_PATH . $foto);
+                $photos = explode(',', $vigilancia->fotos_vigilancia);
+                foreach ($photos as $photo) {
+                    $path = UPLOAD_PATH . $photo;
+                    if (file_exists($path)) {
+                        unlink($path);
                     }
                 }
             }
-            
-            if ($vigilancia->delete()) {
-                flash_message('Vigilância veicular excluída com sucesso!', 'success');
-            } else {
-                flash_message('Erro ao excluir vigilância veicular', 'error');
+
+            try {
+                if ($vigilancia->delete()) {
+                    flash_message('success', 'Vigilância veicular excluída com sucesso!');
+                } else {
+                    flash_message('error', 'Erro ao excluir vigilância veicular.');
+                }
+            } catch (Exception $e) {
+                log_error('VIGILANCIA_DELETE_ERROR', $e->getMessage());
+                flash_message('error', 'Erro ao excluir vigilância: ' . $e->getMessage());
             }
         } else {
-            flash_message('Vigilância veicular não encontrada', 'error');
+            flash_message('error', 'Vigilância veicular não encontrada.');
         }
         
         redirect('index.php?page=vigilancia');
+        exit;
     }
     
-    public function view() {
-        $id = $_GET['id'] ?? 0;
+    public function view() 
+    {
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id === 0) {
+            flash_message('error', 'ID inválido.');
+            redirect('index.php?page=vigilancia');
+            exit;
+        }
+
         $vigilancia = new VigilanciaVeicular();
         $vigilancia->id = $id;
         
         if (!$vigilancia->readOne()) {
-            flash_message('Vigilância veicular não encontrada', 'error');
+            flash_message('error', 'Vigilância veicular não encontrada.');
             redirect('index.php?page=vigilancia');
+            exit;
         }
         
         include 'views/vigilancia/view.php';
     }
-}
-?>
 
+    /**
+     * Preenche as propriedades da vigilância
+     */
+    private function fillVigilancia($vigilancia) 
+    {
+        $vigilancia->veiculo = sanitize_input($_POST['veiculo'] ?? '');
+        $vigilancia->condutor = sanitize_input($_POST['condutor'] ?? '');
+        $vigilancia->data_hora_inicio = $_POST['data_hora_inicio'] ?? null;
+        $vigilancia->data_hora_fim = $_POST['data_hora_fim'] ?? null;
+        $vigilancia->localizacao_inicial = sanitize_input($_POST['localizacao_inicial'] ?? '');
+        $vigilancia->localizacao_final = sanitize_input($_POST['localizacao_final'] ?? '');
+        $vigilancia->km_inicial = $_POST['km_inicial'] ?? null;
+        $vigilancia->km_final = $_POST['km_final'] ?? null;
+        $vigilancia->combustivel_inicial = $_POST['combustivel_inicial'] ?? null;
+        $vigilancia->combustivel_final = $_POST['combustivel_final'] ?? null;
+        $vigilancia->observacoes = sanitize_input($_POST['observacoes'] ?? '');
+        $vigilancia->status_vigilancia = sanitize_input($_POST['status_vigilancia'] ?? 'Ativo');
+        $vigilancia->responsavel = sanitize_input($_POST['responsavel'] ?? '');
+    }
+}

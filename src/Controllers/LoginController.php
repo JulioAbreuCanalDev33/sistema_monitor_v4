@@ -7,62 +7,68 @@ use App\Config\Database;
 use Exception;
 use function App\Includes\flash_message;
 use function App\Includes\redirect;
-use function App\Includes\sanitize_input;
 
-
-class LoginController {
-    
-    public function index() {
-        // Se já estiver logado, redirecionar para dashboard
+class LoginController 
+{
+    public function index() 
+    {
         if (isset($_SESSION['user_id'])) {
             redirect('index.php?page=dashboard');
         }
-        
         include 'views/login.php';
     }
     
-    public function authenticate() {
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $email = sanitize_input($_POST['email']);
-            $senha = sanitize_input($_POST['senha']);
+    public function authenticate() 
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('index.php?page=login');
+            exit;
+        }
+
+        $email = trim($_POST['email'] ?? '');
+        $senha = $_POST['senha'] ?? '';
+        $senha = trim($senha);
+
+        if (empty($email) || empty($senha)) {
+            flash_message('error', 'Email e senha são obrigatórios');
+            redirect('index.php?page=login');
+            exit;
+        }
+        
+        $usuario = new Usuario();
+        
+        if ($usuario->login($email, $senha)) {
+            $_SESSION['user_id'] = $usuario->id;
+            $_SESSION['user_name'] = $usuario->nome;
+            $_SESSION['user_email'] = $usuario->email;
+            $_SESSION['user_level'] = $usuario->nivel;
             
-            if (empty($email) || empty($senha)) {
-                flash_message('Email e senha são obrigatórios', 'error');
-                redirect('index.php?page=login');
-            }
+            $this->logAction('login', 'usuarios', $usuario->id);
             
-            $usuario = new Usuario();
-            
-            if ($usuario->login($email, $senha)) {
-                $_SESSION['user_id'] = $usuario->id;
-                $_SESSION['user_name'] = $usuario->nome;
-                $_SESSION['user_email'] = $usuario->email;
-                $_SESSION['user_level'] = $usuario->nivel;
-                
-                // Log da ação
-                $this->logAction('login', 'usuarios', $usuario->id);
-                
-                flash_message('Login realizado com sucesso!', 'success');
-                redirect('index.php?page=dashboard');
-            } else {
-                flash_message('Email ou senha incorretos', 'error');
-                redirect('index.php?page=login');
-            }
+            flash_message('success', 'Login realizado com sucesso!');
+            redirect('index.php?page=dashboard');
+            exit;
+        } else {
+            flash_message('error', 'Email ou senha incorretos');
+            redirect('index.php?page=login');
+            exit;
         }
     }
     
-    public function logout() {
-        // Log da ação
+    public function logout() 
+    {
         if (isset($_SESSION['user_id'])) {
             $this->logAction('logout', 'usuarios', $_SESSION['user_id']);
         }
         
         session_destroy();
-        flash_message('Logout realizado com sucesso!', 'success');
+        flash_message('success', 'Logout realizado com sucesso!');
         redirect('index.php?page=login');
+        exit;
     }
     
-    private function logAction($acao, $tabela, $registro_id) {
+    private function logAction($acao, $tabela, $registro_id) 
+    {
         try {
             $database = new Database();
             $conn = $database->getConnection();
@@ -77,12 +83,9 @@ class LoginController {
             $stmt->bindParam(':registro_id', $registro_id);
             $stmt->bindParam(':ip', $_SERVER['REMOTE_ADDR']);
             $stmt->bindParam(':user_agent', $_SERVER['HTTP_USER_AGENT']);
-            
             $stmt->execute();
         } catch (Exception $e) {
-            // Log error silently
+            error_log("Erro ao logar ação: " . $e->getMessage());
         }
     }
 }
-?>
-

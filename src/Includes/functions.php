@@ -7,9 +7,6 @@ use DateTime;
 /**
  * Sanitizar entrada de dados
  */
-
-namespace App\Includes;
-
 function sanitize_input(string $data): string
 {
     $data = trim($data);
@@ -26,20 +23,17 @@ function flash_message(string $type, string $message): void
     if (!isset($_SESSION)) {
         session_start();
     }
-
     $_SESSION['flash'][$type][] = $message;
 }
 
 /**
- * Obter e limpar mensagem flash
+ * Obter e limpar mensagens flash
  */
-
-namespace App\Includes;
-
-function get_flash_message() {
-    if (isset($_SESSION['flash_messages'])) {
-        $messages = $_SESSION['flash_messages'];
-        unset($_SESSION['flash_messages']); // Limpa após exibir
+function get_flash_message() 
+{
+    if (isset($_SESSION['flash'])) {
+        $messages = $_SESSION['flash'];
+        unset($_SESSION['flash']);
         return $messages;
     }
     return [];
@@ -88,27 +82,16 @@ function format_date($date, $format = 'd/m/Y H:i')
 function validate_cpf($cpf)
 {
     $cpf = preg_replace('/[^0-9]/', '', $cpf);
+    if (strlen($cpf) != 11) return false;
+    if (preg_match('/(\d)\1{10}/', $cpf)) return false;
 
-    if (strlen($cpf) != 11) {
-        return false;
-    }
-
-    // Verificar se todos os dígitos são iguais
-    if (preg_match('/(\d)\1{10}/', $cpf)) {
-        return false;
-    }
-
-    // Validar primeiro dígito verificador
     for ($t = 9; $t < 11; $t++) {
         for ($d = 0, $c = 0; $c < $t; $c++) {
             $d += $cpf[$c] * (($t + 1) - $c);
         }
         $d = ((10 * $d) % 11) % 10;
-        if ($cpf[$c] != $d) {
-            return false;
-        }
+        if ($cpf[$c] != $d) return false;
     }
-
     return true;
 }
 
@@ -118,17 +101,9 @@ function validate_cpf($cpf)
 function validate_cnpj($cnpj)
 {
     $cnpj = preg_replace('/[^0-9]/', '', $cnpj);
+    if (strlen($cnpj) != 14) return false;
+    if (preg_match('/(\d)\1{13}/', $cnpj)) return false;
 
-    if (strlen($cnpj) != 14) {
-        return false;
-    }
-
-    // Verificar se todos os dígitos são iguais
-    if (preg_match('/(\d)\1{13}/', $cnpj)) {
-        return false;
-    }
-
-    // Validar primeiro dígito verificador
     $length = strlen($cnpj) - 2;
     $numbers = substr($cnpj, 0, $length);
     $digits = substr($cnpj, $length);
@@ -137,33 +112,24 @@ function validate_cnpj($cnpj)
 
     for ($i = $length; $i >= 1; $i--) {
         $sum += $numbers[$length - $i] * $pos--;
-        if ($pos < 2) {
-            $pos = 9;
-        }
+        if ($pos < 2) $pos = 9;
     }
 
     $result = $sum % 11 < 2 ? 0 : 11 - $sum % 11;
-    if ($result != $digits[0]) {
-        return false;
-    }
+    if ($result != $digits[0]) return false;
 
-    // Validar segundo dígito verificador
-    $length = $length + 1;
+    $length++;
     $numbers = substr($cnpj, 0, $length);
     $sum = 0;
     $pos = $length - 7;
 
     for ($i = $length; $i >= 1; $i--) {
         $sum += $numbers[$length - $i] * $pos--;
-        if ($pos < 2) {
-            $pos = 9;
-        }
+        if ($pos < 2) $pos = 9;
     }
 
     $result = $sum % 11 < 2 ? 0 : 11 - $sum % 11;
-    if ($result != $digits[1]) {
-        return false;
-    }
+    if ($result != $digits[1]) return false;
 
     return true;
 }
@@ -176,11 +142,9 @@ function generate_password($length = 8)
     $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     $charactersLength = strlen($characters);
     $randomString = '';
-
     for ($i = 0; $i < $length; $i++) {
         $randomString .= $characters[rand(0, $charactersLength - 1)];
     }
-
     return $randomString;
 }
 
@@ -189,28 +153,34 @@ function generate_password($length = 8)
  */
 function has_permission($required_level)
 {
-    if (!isset($_SESSION['user_level'])) {
-        return false;
-    }
-
+    if (!isset($_SESSION['user_level'])) return false;
     $user_level = $_SESSION['user_level'];
-
-    if ($required_level === 'admin' && $user_level !== 'admin') {
-        return false;
-    }
-
+    if ($required_level === 'admin' && $user_level !== 'admin') return false;
     return true;
 }
 
 /**
- * Calcular idade
+ * Calcular idade com validação
  */
 function calculate_age($birthdate)
 {
+    if (empty($birthdate) || !is_string($birthdate)) {
+        return null;
+    }
+
+    try {
+        $birth = new DateTime(trim($birthdate));
+    } catch (\Exception $e) {
+        return null;
+    }
+
     $today = new DateTime();
-    $birth = new DateTime($birthdate);
+    if ($birth > $today) {
+        return null;
+    }
+
     $age = $today->diff($birth);
-    return $age->y;
+    return (int) $age->y;
 }
 
 /**
@@ -219,13 +189,11 @@ function calculate_age($birthdate)
 function format_phone($phone)
 {
     $phone = preg_replace('/[^0-9]/', '', $phone);
-
     if (strlen($phone) == 11) {
         return '(' . substr($phone, 0, 2) . ') ' . substr($phone, 2, 5) . '-' . substr($phone, 7);
     } elseif (strlen($phone) == 10) {
         return '(' . substr($phone, 0, 2) . ') ' . substr($phone, 2, 4) . '-' . substr($phone, 6);
     }
-
     return $phone;
 }
 
@@ -235,11 +203,9 @@ function format_phone($phone)
 function format_cpf($cpf)
 {
     $cpf = preg_replace('/[^0-9]/', '', $cpf);
-
     if (strlen($cpf) == 11) {
         return substr($cpf, 0, 3) . '.' . substr($cpf, 3, 3) . '.' . substr($cpf, 6, 3) . '-' . substr($cpf, 9, 2);
     }
-
     return $cpf;
 }
 
@@ -249,11 +215,9 @@ function format_cpf($cpf)
 function format_cnpj($cnpj)
 {
     $cnpj = preg_replace('/[^0-9]/', '', $cnpj);
-
     if (strlen($cnpj) == 14) {
         return substr($cnpj, 0, 2) . '.' . substr($cnpj, 2, 3) . '.' . substr($cnpj, 5, 3) . '/' . substr($cnpj, 8, 4) . '-' . substr($cnpj, 12, 2);
     }
-
     return $cnpj;
 }
 
@@ -263,11 +227,9 @@ function format_cnpj($cnpj)
 function format_cep($cep)
 {
     $cep = preg_replace('/[^0-9]/', '', $cep);
-
     if (strlen($cep) == 8) {
         return substr($cep, 0, 5) . '-' . substr($cep, 5, 3);
     }
-
     return $cep;
 }
 
@@ -277,7 +239,7 @@ function format_cep($cep)
 function is_json($string)
 {
     json_decode($string);
-    return (json_last_error() == JSON_ERROR_NONE);
+    return json_last_error() === JSON_ERROR_NONE;
 }
 
 /**
