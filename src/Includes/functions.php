@@ -17,19 +17,18 @@ function sanitize_input(string $data): string
 
 /**
  * Exibir mensagem flash
+ * 
+ * ATENÇÃO: session_start() deve ser chamado no index.php, NÃO aqui.
  */
 function flash_message(string $type, string $message): void
 {
-    if (!isset($_SESSION)) {
-        session_start();
-    }
     $_SESSION['flash'][$type][] = $message;
 }
 
 /**
  * Obter e limpar mensagens flash
  */
-function get_flash_message() 
+function get_flash_message()
 {
     if (isset($_SESSION['flash'])) {
         $messages = $_SESSION['flash'];
@@ -153,9 +152,13 @@ function generate_password($length = 8)
  */
 function has_permission($required_level)
 {
-    if (!isset($_SESSION['user_level'])) return false;
+    if (!isset($_SESSION['user_level'])) {
+        return false;
+    }
     $user_level = $_SESSION['user_level'];
-    if ($required_level === 'admin' && $user_level !== 'admin') return false;
+    if ($required_level === 'admin' && $user_level !== 'admin') {
+        return false;
+    }
     return true;
 }
 
@@ -247,6 +250,11 @@ function is_json($string)
  */
 function log_activity($action, $details = '')
 {
+    // Verifica se a sessão está ativa
+    if (session_status() === PHP_SESSION_NONE) {
+        return;
+    }
+
     if (!isset($_SESSION['user_id'])) {
         return;
     }

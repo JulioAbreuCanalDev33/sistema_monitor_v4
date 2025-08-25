@@ -14,25 +14,32 @@
                 <h2><i class="fas fa-shield-alt"></i> Sistema de Monitoramento</h2>
                 <p>Faça login para acessar o sistema</p>
             </div>
-            
+
             <?php
-            // Define get_flash_message if not already defined
+            // Função corrigida para obter mensagens flash
             if (!function_exists('get_flash_message')) {
                 function get_flash_message() {
-                    if (isset($_SESSION['flash_message'])) {
-                        $flash = $_SESSION['flash_message'];
-                        unset($_SESSION['flash_message']);
-                        return $flash;
+                    if (isset($_SESSION['flash'])) {
+                        $messages = $_SESSION['flash'];
+                        unset($_SESSION['flash']);
+                        return $messages;
                     }
-                    return null;
+                    return [];
                 }
             }
-            $flash = get_flash_message();
-            if ($flash):
+
+            $all_messages = get_flash_message();
+
+            if (!empty($all_messages)):
             ?>
-            <div class="alert alert-<?php echo $flash['type']; ?>">
-                <?php echo $flash['message']; ?>
-            </div>
+                <?php foreach ($all_messages as $type => $messages): ?>
+                    <?php foreach ($messages as $message): ?>
+                        <div class="alert alert-<?php echo htmlspecialchars($type); ?>">
+                            <span><?php echo htmlspecialchars($message); ?></span>
+                            <button type="button" class="alert-close">&times;</button>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endforeach; ?>
             <?php endif; ?>
             
             <form method="POST" action="index.php?page=login&action=authenticate" class="needs-validation" novalidate>
@@ -81,4 +88,3 @@
     <script src="assets/js/main.js"></script>
 </body>
 </html>
-

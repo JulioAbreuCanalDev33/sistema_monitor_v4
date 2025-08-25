@@ -1,11 +1,22 @@
 <?php
+session_start(); // 1. Iniciar sessão IMEDIATAMENTE, no escopo global
+
 /**
  * Arquivo principal de roteamento
  */
 
-// 1. Iniciar sessão IMEDIATAMENTE, no escopo global
-session_start();
-var_dump($_SESSION);
+/*  
+Para debug: ver quantas vezes o index.php é carregado
+error_log("🌀 index.php carregado - Page: " . ($_GET['page'] ?? 'n/a') .
+    " | Action: " . ($_GET['action'] ?? 'n/a') .
+    " | Method: " . $_SERVER['REQUEST_METHOD'] .
+    " | IP: " . $_SERVER['REMOTE_ADDR']);
+*/
+
+// var_dump($_SESSION);
+
+// http://localhost:8888/debug.php?page=login
+
 // 2. Autoload Composer
 require_once __DIR__ . '/vendor/autoload.php';
 
@@ -41,10 +52,12 @@ if (isset($_SESSION['user_id'])) {
 switch ($page) {
     case 'login':
         $controller = new \App\Controllers\LoginController();
-        
-        if ($action === 'logout') {
+
+        /*if ($action === 'logout') {
             $controller->logout();
-        } elseif ($action === 'authenticate') {
+            exit;
+        } */
+        if ($action === 'authenticate') {
             $controller->authenticate();
             exit;
         } else {
@@ -60,97 +73,174 @@ switch ($page) {
     case 'usuarios':
         $controller = new \App\Controllers\UsuariosController();
         switch ($action) {
-            case 'create': $controller->create(); break;
-            case 'edit': $controller->edit(); break;
-            case 'view': $controller->view(); break;
-            case 'delete': $controller->delete(); break;
-            case 'perfil': $controller->perfil(); break;
-            default: $controller->index();
+            case 'create':
+                $controller->create();
+                break;
+            case 'edit':
+                $controller->edit();
+                break;
+            case 'view':
+                $controller->view();
+                break;
+            case 'delete':
+                $controller->delete();
+                break;
+            case 'perfil':
+                $controller->perfil();
+                break;
+            default:
+                $controller->index();
         }
         break;
 
     case 'clientes':
         $controller = new \App\Controllers\ClientesController();
         switch ($action) {
-            case 'create': $controller->create(); break;
-            case 'edit': $controller->edit(); break;
-            case 'view': $controller->view(); break;
-            case 'delete': $controller->delete(); break;
-            default: $controller->index();
+            case 'create':
+                $controller->create();
+                break;
+            case 'edit':
+                $controller->edit();
+                break;
+            case 'view':
+                $controller->view();
+                break;
+            case 'delete':
+                $controller->delete();
+                break;
+            default:
+                $controller->index();
         }
         break;
 
     case 'agentes':
         $controller = new \App\Controllers\AgentesController();
         switch ($action) {
-            case 'create': $controller->create(); break;
-            case 'edit': $controller->edit(); break;
-            case 'view': $controller->view(); break;
-            case 'delete': $controller->delete(); break;
-            default: $controller->index();
+            case 'create':
+                $controller->create();
+                break;
+            case 'edit':
+                $controller->edit();
+                break;
+            case 'view':
+                $controller->view();
+                break;
+            case 'delete':
+                $controller->delete();
+                break;
+            default:
+                $controller->index();
         }
         break;
 
     case 'prestadores':
         $controller = new \App\Controllers\PrestadoresController();
         switch ($action) {
-            case 'create': $controller->create(); break;
-            case 'edit': $controller->edit(); break;
-            case 'view': $controller->view(); break;
-            case 'delete': $controller->delete(); break;
-            default: $controller->index();
+            case 'create':
+                $controller->create();
+                break;
+            case 'edit':
+                $controller->edit();
+                break;
+            case 'view':
+                $controller->view();
+                break;
+            case 'delete':
+                $controller->delete();
+                break;
+            default:
+                $controller->index();
         }
         break;
 
     case 'atendimentos':
         $controller = new \App\Controllers\AtendimentosController();
         switch ($action) {
-            case 'create': $controller->create(); break;
-            case 'edit': $controller->edit(); break;
-            case 'view': $controller->view(); break;
-            case 'delete': $controller->delete(); break;
-            default: $controller->index();
+            case 'create':
+                $controller->create();
+                break;
+            case 'edit':
+                $controller->edit();
+                break;
+            case 'view':
+                $controller->view();
+                break;
+            case 'delete':
+                $controller->delete();
+                break;
+            default:
+                $controller->index();
         }
         break;
 
     case 'ocorrencias':
         $controller = new \App\Controllers\OcorrenciasController();
         switch ($action) {
-            case 'create': $controller->create(); break;
-            case 'edit': $controller->edit(); break;
-            case 'view': $controller->view(); break;
-            case 'delete': $controller->delete(); break;
-            default: $controller->index();
+            case 'create':
+                $controller->create();
+                break;
+            case 'edit':
+                $controller->edit();
+                break;
+            case 'view':
+                $controller->view();
+                break;
+            case 'delete':
+                $controller->delete();
+                break;
+            default:
+                $controller->index();
         }
         break;
 
     case 'vigilancia':
         $controller = new \App\Controllers\VigilanciaController();
         switch ($action) {
-            case 'create': $controller->create(); break;
-            case 'edit': $controller->edit(); break;
-            case 'view': $controller->view(); break;
-            case 'delete': $controller->delete(); break;
-            default: $controller->index();
+            case 'create':
+                $controller->create();
+                break;
+            case 'edit':
+                $controller->edit();
+                break;
+            case 'view':
+                $controller->view();
+                break;
+            case 'delete':
+                $controller->delete();
+                break;
+            default:
+                $controller->index();
         }
         break;
 
     case 'relatorios':
         $controller = new \App\Controllers\RelatoriosController();
         switch ($action) {
-            case 'generate': $controller->generate(); break;
-            default: $controller->index();
+            case 'generate':
+                $controller->generate();
+                break;
+            default:
+                $controller->index();
         }
         break;
 
     case 'logs':
         $controller = new \App\Controllers\LogsController();
         switch ($action) {
-            case 'clean': $controller->clean(); break;
-            case 'export': $controller->export(); break;
-            case 'stats': $controller->stats(); break;
-            case 'test': $controller->test(); break;
-            default: $controller->index();
+            case 'clean':
+                $controller->clean();
+                break;
+            case 'export':
+                $controller->export();
+                break;
+            case 'stats':
+                $controller->stats();
+                break;
+            case 'test':
+                $controller->test();
+                break;
+            default:
+                $controller->index();
         }
         break;
 
